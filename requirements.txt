@@ -1,0 +1,8 @@
+# Métricas del sistema: CPU, RAM, SWAP, temperatura y procesos
+psutil>=5.9
+
+# Envío de las medias al webhook de n8n
+requests>=2.31
+
+# Escritura en InfluxDB 2.x (parte opcional del script)
+influxdb-client>=1.36

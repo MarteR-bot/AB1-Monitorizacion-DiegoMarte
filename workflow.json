@@ -1,0 +1,188 @@
+{
+  "name": "workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "6438dd15-9721-43e5-bbf4-80552569792d",
+              "leftValue": "={{ $json.hayAlertas }}",
+              "rightValue": 80,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        672,
+        0
+      ],
+      "id": "f051633c-6dc2-4682-b065-85cdff8218d1",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "monitor",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.2,
+      "position": [
+        224,
+        0
+      ],
+      "id": "e6908cc7-38a8-4b8c-a993-452a855fbb0d",
+      "name": "Webhook",
+      "webhookId": "f75be9da-43b4-4743-8d76-d53eb2700083"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "llama3.2:3b",
+          "mode": "list",
+          "cachedResultName": "llama3.2:3b"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Equipo: {{ $json.body ? $json.body.host : 'MacBook_Diego' }}\n\nUmbrales superados:\n{{ $json.alertas.join('\\n') }}\n\nValores actuales:\n- CPU media: {{ $json.mediaCPU }}%\n- RAM media: {{ $json.mediaRAM }}%\n- SWAP: {{ $json.SwapPorcentaje }}%\n\nProcesos que más RAM consumen:\n{{ $json.procesos.map(p => `- ${p.nombre}: ${p.ram_porcentaje}% (usuario ${p.usuario})`).join('\\n') }}"
+            }
+          ]
+        },
+        "options": {
+          "system": "Eres un asistente de administración de sistemas. Recibes alertas de monitorización de un MacBook.\nResponde en español, en texto plano y de forma breve:\n1) Diagnóstico de 2-3 frases, citando los porcentajes exactos recibidos.\n2) Tres acciones concretas, ordenadas por prioridad, que mencionen por su nombre los procesos que más RAM consumen.\nReglas: usa SOLO los datos recibidos. No afirmes nada sobre desgaste o vida útil del hardware.\nEl SWAP es memoria virtual en disco: un valor alto indica falta de RAM. \nNo sugieras ajustar la memoria virtual, porque macOS la gestiona solo. \nSi Docker aparece entre los procesos, sugiere reducir su límite de memoria en Docker Desktop o cerrar contenedores que no se usen.",
+          "temperature": 0.1
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.ollama",
+      "typeVersion": 1,
+      "position": [
+        880,
+        -160
+      ],
+      "id": "728294b6-0986-48d0-b893-f0344e4d5747",
+      "name": "Message a model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "IDSrtlS9TNMvQCWz",
+          "name": "Ollama account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.first().json.body;\n\nconst UMBRALES = { cpu: 80, ram: 85, swap: 70, temp: 80 };\n\nconst alertas = [];\n\nif (d.mediaCPU > UMBRALES.cpu)\n  alertas.push(`CPU media al ${d.mediaCPU}% (umbral ${UMBRALES.cpu}%)`);\n\nif (d.mediaRAM > UMBRALES.ram)\n  alertas.push(`RAM media al ${d.mediaRAM}% (umbral ${UMBRALES.ram}%)`);\n\nif (d.SwapPorcentaje > UMBRALES.swap)\n  alertas.push(`SWAP al ${d.SwapPorcentaje}% (umbral ${UMBRALES.swap}%)`);\n\nif (d.temperatura !== null && d.temperatura > UMBRALES.temp)\n  alertas.push(`Temperatura a ${d.temperatura} °C (umbral ${UMBRALES.temp} °C)`);\n\nreturn [{ json: { ...d, alertas, hayAlertas: alertas.length > 0 } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "id": "8fd57af2-6d8a-4c9c-b853-3043bd303656",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "fromEmail": "dmarteroa@gmail.com",
+        "toEmail": "dmarteroa@gmail.com",
+        "subject": "Alerta de Sistema",
+        "emailFormat": "text",
+        "text": "={{ $json.content }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1248,
+        -160
+      ],
+      "id": "7325592e-880e-4910-b385-96ae57a7cf5f",
+      "name": "Send an Email",
+      "webhookId": "fb91187d-48e7-4905-88ac-ada1c519ba28",
+      "credentials": {
+        "smtp": {
+          "id": "38rWisJKBIFBlcgd",
+          "name": "SMTP account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Send an Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "f3062971-159e-4b4b-838a-9569a798d509",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4d224931ae37e1c97afbe3205ac2ac5e63b1123a22131c1d930afcf1ee8613ed"
+  },
+  "nodeGroups": [],
+  "id": "0vmVuJ625SXk0KKi",
+  "tags": []
+}
