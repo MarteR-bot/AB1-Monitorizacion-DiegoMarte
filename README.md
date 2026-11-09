@@ -1,3 +1,6 @@
+# Assigment Brief 1. Diego Marte
+## Unit 47. Tecnologias Emergentes
+
 # Monitorización de sistema con n8n
 
 Un script en Python mide CPU, RAM, SWAP, temperatura y los cinco procesos que más memoria usan. Cada cinco lecturas (unos 20 segundos) envía las medias a un webhook de n8n. El workflow comprueba los umbrales y, si se supera alguno, un modelo de lenguaje local explica la situación y propone acciones. El resultado llega por correo electrónico.
